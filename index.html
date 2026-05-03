@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="icon" href="https://img.icons8.com/fluency/240/potted-plant.png">
 
-    <title>心语账本 Gentle Ledger</title>
+    <title>心语账本 & 随笔 v4.0</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -20,29 +19,30 @@
         .glass-card { backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07); }
         .btn-primary { background-color: var(--primary-color); transition: transform 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .btn-primary:active { transform: scale(0.95); }
+        .tab-active { border-bottom: 3px solid var(--primary-color); font-weight: bold; }
         ::-webkit-scrollbar { width: 0px; }
     </style>
 </head>
 <body class="p-4">
     <div id="app" class="max-w-md mx-auto">
-        <!-- 顶部状态栏：语言切换与月度预算 -->
+        <!-- 顶部状态栏 -->
         <div class="flex justify-between items-center mb-6 pt-4">
             <button @click="toggleLang" class="glass-card px-4 py-1.5 rounded-full text-xs font-bold uppercase text-gray-600">
                 {{ lang === 'zh' ? 'English' : '中文' }}
             </button>
             <div class="text-right">
-                <p class="text-[10px] uppercase text-gray-400 font-bold">{{ lang === 'zh' ? '本月剩余预算' : 'MONTH BUDGET' }}</p>
+                <p class="text-[10px] uppercase text-gray-400 font-bold">{{ lang === 'zh' ? '月预算余额' : 'MONTH BUDGET' }}</p>
                 <p class="text-lg font-bold" :style="{color: themeColor}">¥{{ monthlyRemaining }}</p>
             </div>
         </div>
 
-        <!-- 头部：问候与日期 -->
+        <!-- 头部问候 -->
         <header class="mb-6 pl-2">
             <h1 class="text-3xl font-bold text-gray-800 tracking-tight">{{ t('greeting') }}</h1>
             <p class="text-gray-500 font-medium">{{ displayDate }}</p>
         </header>
 
-        <!-- 动态植物卡片（保留原有随机植物） -->
+        <!-- 动态植物卡片 -->
         <section class="glass-card rounded-[2rem] overflow-hidden mb-6">
             <div class="h-32 w-full relative">
                 <img :src="luckyPlant.img" class="w-full h-full object-cover opacity-80" />
@@ -56,64 +56,66 @@
             </div>
         </section>
 
-        <!-- 统计面板 -->
-        <div class="grid grid-cols-2 gap-4 mb-6">
-            <div class="glass-card rounded-3xl p-5">
-                <p class="text-[10px] uppercase font-bold text-gray-400 mb-1">{{ lang === 'zh' ? '本周累计' : 'WEEKLY SPENT' }}</p>
-                <p class="text-2xl font-bold text-gray-800">¥{{ weeklyTotal }}</p>
+        <!-- 功能切换页签 -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button @click="currentTab = 'ledger'" :class="{'tab-active': currentTab === 'ledger'}" class="flex-1 py-3 text-sm text-gray-600 transition-all">{{ lang === 'zh' ? '账本记录' : 'LEDGER' }}</button>
+            <button @click="currentTab = 'mood'" :class="{'tab-active': currentTab === 'mood'}" class="flex-1 py-3 text-sm text-gray-600 transition-all">{{ lang === 'zh' ? '心情笔记' : 'MOOD' }}</button>
+        </div>
+
+        <!-- AI 分析按钮 -->
+        <button @click="showAnalysis = !showAnalysis" class="w-full py-3 mb-6 rounded-2xl bg-gray-800 text-white text-xs font-bold shadow-lg">
+            <i class="fas fa-magic mr-2"></i> {{ lang === 'zh' ? '查看本周 AI 深度分析' : 'WEEKLY AI ANALYSIS' }}
+        </button>
+
+        <!-- 双维度 AI 分析显示 -->
+        <div v-if="showAnalysis" class="space-y-4 mb-8 animate-fade-in">
+            <div class="glass-card p-5 border-l-4 border-green-500">
+                <h4 class="text-[10px] font-bold text-green-600 uppercase mb-2">📊 {{ lang === 'zh' ? '财务周分析' : 'FINANCIAL ANALYSIS' }}</h4>
+                <p class="text-xs text-gray-600 leading-relaxed italic">{{ financialReport }}</p>
             </div>
-            <div class="glass-card rounded-3xl p-5">
-                <p class="text-[10px] uppercase font-bold text-gray-400 mb-1">{{ t('spentToday') }}</p>
-                <p class="text-2xl font-bold" :style="{color: themeColor}">¥{{ dailyTotal }}</p>
+            <div class="glass-card p-5 border-l-4 border-indigo-500">
+                <h4 class="text-[10px] font-bold text-indigo-600 uppercase mb-2">✨ {{ lang === 'zh' ? '心情周建议' : 'MOOD INSIGHTS' }}</h4>
+                <p class="text-xs text-gray-600 leading-relaxed italic">{{ moodReport }}</p>
             </div>
         </div>
 
-        <!-- 功能切换按钮 -->
-        <div class="flex gap-2 mb-6">
-            <button @click="filterType = 'all'" :class="filterType === 'all' ? 'bg-white shadow-sm' : 'opacity-50'" class="flex-1 py-2 rounded-xl text-xs font-bold transition">{{ lang === 'zh' ? '全部明细' : 'ALL' }}</button>
-            <button @click="filterType = 'week'" :class="filterType === 'week' ? 'bg-white shadow-sm' : 'opacity-50'" class="flex-1 py-2 rounded-xl text-xs font-bold transition">{{ lang === 'zh' ? '本周明细' : 'WEEKLY' }}</button>
-            <button @click="showAnalysis = !showAnalysis" class="flex-1 py-2 rounded-xl text-xs font-bold bg-gray-800 text-white shadow-lg">{{ lang === 'zh' ? 'AI周分析' : 'AI REPORT' }}</button>
-        </div>
-
-        <!-- AI 周汇总报告 -->
-        <div v-if="showAnalysis" class="glass-card rounded-2xl p-5 mb-6 border-l-4 border-gray-800 animate-fade-in">
-            <h4 class="text-xs font-bold text-gray-800 mb-2 uppercase">✨ {{ lang === 'zh' ? '周度财务建议' : 'WEEKLY AI ANALYSIS' }}</h4>
-            <p class="text-xs text-gray-600 leading-relaxed italic">{{ weeklyAiReport }}</p>
-        </div>
-
-        <!-- 记账输入区（升级：详细备注） -->
-        <section class="glass-card rounded-[2.5rem] p-6 mb-8 shadow-inner">
-            <div class="space-y-3">
-                <input type="date" v-model="newItem.date" class="w-full bg-white/50 p-3 rounded-2xl border-none text-sm outline-none">
+        <!-- 输入区域 -->
+        <section class="glass-card rounded-[2.5rem] p-6 mb-8">
+            <div v-if="currentTab === 'ledger'" class="space-y-3 animate-fade-in">
                 <div class="flex gap-2">
-                    <select v-model="newItem.category" class="flex-1 bg-white/50 p-3 rounded-2xl border-none text-xs outline-none">
-                        <option v-for="cat in (lang === 'zh' ? categoriesZh : categoriesEn)" :value="cat">{{cat}}</option>
+                    <select v-model="newItem.category" class="flex-1 bg-white/50 p-3 rounded-2xl text-xs outline-none">
+                        <option v-for="cat in categoriesZh">{{cat}}</option>
                     </select>
-                    <input type="number" v-model="newItem.amount" :placeholder="t('amount')" class="w-1/3 bg-white/50 p-3 rounded-2xl border-none text-sm outline-none font-bold">
+                    <input type="number" v-model="newItem.amount" :placeholder="t('amount')" class="w-1/3 bg-white/50 p-3 rounded-2xl text-sm font-bold outline-none">
                 </div>
-                <!-- 详细备注：替换掉原来的拍照 -->
-                <textarea v-model="newItem.note" rows="2" :placeholder="lang === 'zh' ? '买了什么详细内容？比如：买菜明细、心情...' : 'Details & Feelings...'" class="w-full bg-white/50 p-3 rounded-2xl border-none text-sm outline-none resize-none"></textarea>
+                <textarea v-model="newItem.detail" rows="2" :placeholder="lang === 'zh' ? '详细记录：比如买了什么？' : 'Details...'" class="w-full bg-white/50 p-3 rounded-2xl text-sm outline-none resize-none"></textarea>
+                <button @click="addRecord" class="w-full text-white font-bold py-4 rounded-2xl transition-all btn-primary" :style="{'background-color': themeColor}">{{ t('keepRecord') }}</button>
+            </div>
 
-                <button @click="addRecord" class="w-full text-white font-bold py-4 rounded-2xl transition-all btn-primary" :style="{'background-color': themeColor}">
-                    {{ t('keepRecord') }}
-                </button>
+            <div v-else class="space-y-3 animate-fade-in">
+                <textarea v-model="newMood.content" rows="4" :placeholder="lang === 'zh' ? '此时此刻的心情是怎样的？' : 'How do you feel right now?'" class="w-full bg-white/50 p-3 rounded-2xl text-sm outline-none resize-none"></textarea>
+                <button @click="addMood" class="w-full text-white font-bold py-4 rounded-2xl transition-all btn-primary" :style="{'background-color': themeColor}">{{ lang === 'zh' ? '收藏心情' : 'SAVE MOOD' }}</button>
             </div>
         </section>
 
-        <!-- 历史列表 -->
+        <!-- 混合历史列表 -->
         <div class="space-y-4">
-            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest pl-2">{{ filterType === 'week' ? t('weeklyRecords') : t('records') }}</h2>
-            <div v-for="(item, index) in filteredRecords" :key="item.id" class="glass-card rounded-2xl p-5">
+            <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-2">{{ lang === 'zh' ? '本周记录明细' : 'WEEKLY FEED' }}</h2>
+            <div v-for="(item, index) in weeklyTimeline" :key="item.id" class="glass-card rounded-2xl p-5 border-t-2" :style="{'border-top-color': item.type === 'ledger' ? themeColor : '#6366f1'}">
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/80" :style="{color: themeColor}">{{ item.category }}</span>
-                        <p class="text-sm font-bold text-gray-700 mt-2 whitespace-pre-line">{{ item.note || t('noNote') }}</p>
-                        <p class="text-[10px] text-gray-400">{{ item.date }}</p>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" :class="item.type === 'ledger' ? 'bg-gray-100 text-gray-500' : 'bg-indigo-100 text-indigo-500'">
+                                {{ item.type === 'ledger' ? item.category : 'MOOD' }}
+                            </span>
+                            <span class="text-[10px] text-gray-400">{{ item.date }}</span>
+                        </div>
+                        <p class="text-sm font-medium text-gray-700 whitespace-pre-line">{{ item.type === 'ledger' ? item.detail : item.content }}</p>
                     </div>
-                    <div class="text-right ml-4 font-bold text-gray-800">
-                        <p>-¥{{ item.amount }}</p>
-                        <button @click="deleteItem(index)" class="text-[10px] text-red-300 mt-2 hover:text-red-500 uppercase">Delete</button>
+                    <div v-if="item.type === 'ledger'" class="text-right ml-4 font-bold text-gray-800">
+                        -¥{{ item.amount }}
                     </div>
+                    <button @click="deleteItem(item.id, item.type)" class="text-[10px] text-red-300 ml-4 hover:text-red-500 uppercase">DEL</button>
                 </div>
             </div>
         </div>
@@ -125,59 +127,60 @@
         createApp({
             setup() {
                 const lang = ref(localStorage.getItem('lang') || 'zh');
-                const monthlyBudget = 3000; // 设定你的月预算
-                const filterType = ref('all');
+                const monthlyLimit = 1500;
+                const currentTab = ref('ledger');
                 const showAnalysis = ref(false);
-                const records = ref(JSON.parse(localStorage.getItem('my_gentle_data_v3') || '[]'));
+                
+                // 独立存储
+                const ledger = ref(JSON.parse(localStorage.getItem('gentle_ledger_v4') || '[]'));
+                const moods = ref(JSON.parse(localStorage.getItem('gentle_mood_v4') || '[]'));
 
-                watch(records, (val) => localStorage.setItem('my_gentle_data_v3', JSON.stringify(val)), { deep: true });
+                watch(ledger, (v) => localStorage.setItem('gentle_ledger_v4', JSON.stringify(v)), { deep: true });
+                watch(moods, (v) => localStorage.setItem('gentle_mood_v4', JSON.stringify(v)), { deep: true });
 
-                const i18n = {
-                    zh: {
-                        greeting: "你好，亲爱的", spentToday: "今日已花", amount: "金额",
-                        keepRecord: "保存这条记录", records: "历史明细", weeklyRecords: "本周明细",
-                        luckyPlant: "今日幸运植物", noNote: "记录此时此刻"
-                    },
-                    en: {
-                        greeting: "Hello, Dear", spentToday: "TODAY SPENT", amount: "¥",
-                        keepRecord: "Save Record", records: "ALL RECORDS", weeklyRecords: "WEEKLY RECORDS",
-                        luckyPlant: "LUCKY PLANT", noNote: "A quiet moment"
-                    }
-                };
+                const categoriesZh = ["买菜食材", "餐饮外卖", "生活购物", "交通出行", "其他杂项"];
+                const newItem = ref({ category: '买菜食材', amount: null, detail: '', date: new Date().toLocaleDateString() });
+                const newMood = ref({ content: '', date: new Date().toLocaleDateString() });
 
-                const categoriesZh = ["买菜食材", "餐饮外卖", "生活购物", "交通出行", "住房水电"];
-                const categoriesEn = ["Grocery", "Dining", "Shopping", "Travel", "Housing"];
-
+                // 植物主题
                 const themes = [
                     { name: "尤加利", nameEn: "Eucalyptus", icon: "🌿", color: "#6b8e23", bg: "linear-gradient(135deg, #f0f4f1 0%, #dce5df 100%)", word: "优雅的自律，是最高级的自由。", wordEn: "Self-discipline is freedom.", img: "https://images.unsplash.com/photo-1584552579411-99af631f16af?q=80&w=400" },
-                    { name: "向日葵", nameEn: "Sunflower", icon: "🌻", color: "#b8860b", bg: "linear-gradient(135deg, #fdfcf0 0%, #f5f0d5 100%)", word: "心若向阳，无谓悲伤。", wordEn: "Keep your face to the sunshine.", img: "https://images.unsplash.com/photo-1470509037663-253afd7f0f51?q=80&w=400" }
+                    { name: "白兰花", nameEn: "White Lily", icon: "🕊️", color: "#708090", bg: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)", word: "简单生活，纯粹喜悦。", wordEn: "Simple life, pure joy.", img: "https://images.unsplash.com/photo-1508179106132-38a0380a8f12?q=80&w=400" }
                 ];
                 const luckyPlant = ref(themes[Math.floor(Math.random() * themes.length)]);
                 const themeColor = computed(() => luckyPlant.value.color);
 
-                const newItem = ref({ date: new Date().toISOString().split('T')[0], category: '买菜食材', amount: null, note: '' });
-
-                // 计算逻辑
-                const dailyTotal = computed(() => records.value.filter(r => r.date === new Date().toISOString().split('T')[0]).reduce((s, i) => s + Number(i.amount), 0));
-                const monthlyTotal = computed(() => records.value.reduce((s, i) => s + Number(i.amount), 0));
-                const monthlyRemaining = computed(() => (monthlyBudget - monthlyTotal.value).toFixed(2));
-                
-                const weeklyRecords = computed(() => {
+                // 数据计算逻辑
+                const weeklyTimeline = computed(() => {
+                    const all = [
+                        ...ledger.value.map(l => ({ ...l, type: 'ledger' })),
+                        ...moods.value.map(m => ({ ...m, type: 'mood' }))
+                    ];
                     const now = new Date();
                     const aWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    return records.value.filter(r => new Date(r.date) >= aWeekAgo);
+                    return all.filter(a => new Date(a.date) >= aWeekAgo).sort((a,b) => b.id - a.id);
                 });
-                const weeklyTotal = computed(() => weeklyRecords.value.reduce((s, i) => s + Number(i.amount), 0));
 
-                const filteredRecords = computed(() => filterType.value === 'week' ? weeklyRecords.value : records.value);
+                const monthlyRemaining = computed(() => (monthlyLimit - ledger.value.reduce((s, i) => s + Number(i.amount), 0)).toFixed(2));
 
-                const weeklyAiReport = computed(() => {
-                    if (weeklyRecords.value.length === 0) return lang.value === 'zh' ? "本周还没有数据，AI 正在等候你的记录。" : "No data yet for AI analysis.";
-                    const topCat = [...weeklyRecords.value].sort((a,b) => b.amount - a.amount)[0].category;
-                    return lang.value === 'zh' 
-                        ? `本周你一共支出了 ¥${weeklyTotal.value}。主要集中在 [${topCat}]。目前月预算剩余 ¥${monthlyRemaining.value}，${monthlyRemaining.value < 500 ? '预算告急，建议控制消费哦。' : '财务状态很稳健。'}`
-                        : `Spent ¥${weeklyTotal.value} this week. Main focus: [${topCat}]. Budget left: ¥${monthlyRemaining.value}.`;
+                // 双维度周分析
+                const financialReport = computed(() => {
+                    const weeklyLedger = weeklyTimeline.value.filter(t => t.type === 'ledger');
+                    if (!weeklyLedger.length) return "本周没有消费，财务状况非常安静。";
+                    const total = weeklyLedger.reduce((s, i) => s + Number(i.amount), 0);
+                    return `本周支出 ¥${total}。月预算仅剩 ¥${monthlyRemaining.value}。${monthlyRemaining.value < 200 ? '警告：已接近预算红线！' : '目前还在控制范围内。'}`;
                 });
+
+                const moodReport = computed(() => {
+                    const weeklyMoods = weeklyTimeline.value.filter(t => t.type === 'mood');
+                    if (!weeklyMoods.length) return "本周你没有记录任何心情，记得关注内心的声音。";
+                    return `本周你记录了 ${weeklyMoods.length} 次心情。不论起伏，这种觉察都是成长的体现。`;
+                });
+
+                const i18n = {
+                    zh: { greeting: "你好，亲爱的", amount: "金额", luckyPlant: "今日幸运植物", keepRecord: "确认记账", spentToday: "今日已花" },
+                    en: { greeting: "Hello, Dear", amount: "¥", luckyPlant: "LUCKY PLANT", keepRecord: "SAVE", spentToday: "TODAY" }
+                };
 
                 const t = (k) => i18n[lang.value][k];
                 const toggleLang = () => { lang.value = lang.value === 'zh' ? 'en' : 'zh'; localStorage.setItem('lang', lang.value); };
@@ -185,16 +188,23 @@
 
                 const addRecord = () => {
                     if (!newItem.value.amount) return;
-                    records.value.unshift({ id: Date.now(), ...newItem.value });
-                    newItem.value = { date: new Date().toISOString().split('T')[0], category: '买菜食材', amount: null, note: '' };
+                    ledger.value.unshift({ id: Date.now(), ...newItem.value, date: new Date().toLocaleDateString() });
+                    newItem.value = { category: '买菜食材', amount: null, detail: '', date: new Date().toLocaleDateString() };
                 };
-                const deleteItem = (idx) => { if(confirm("Delete?")) records.value.splice(idx, 1); };
+                const addMood = () => {
+                    if (!newMood.value.content) return;
+                    moods.value.unshift({ id: Date.now(), ...newMood.value, date: new Date().toLocaleDateString() });
+                    newMood.value = { content: '', date: new Date().toLocaleDateString() };
+                };
+                const deleteItem = (id, type) => {
+                    if(!confirm("Delete?")) return;
+                    if(type === 'ledger') ledger.value = ledger.value.filter(l => l.id !== id);
+                    else moods.value = moods.value.filter(m => m.id !== id);
+                };
 
-                onMounted(() => {
-                    document.body.style.background = luckyPlant.value.bg;
-                });
+                onMounted(() => { document.body.style.background = luckyPlant.value.bg; });
 
-                return { lang, monthlyRemaining, weeklyTotal, dailyTotal, luckyPlant, themeColor, filterType, showAnalysis, filteredRecords, weeklyAiReport, newItem, categoriesZh, categoriesEn, displayDate, t, toggleLang, addRecord, deleteItem };
+                return { lang, monthlyRemaining, luckyPlant, themeColor, currentTab, showAnalysis, weeklyTimeline, financialReport, moodReport, newItem, newMood, categoriesZh, displayDate, t, toggleLang, addRecord, addMood, deleteItem };
             }
         }).mount('#app');
     </script>
