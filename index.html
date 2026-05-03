@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心语记账 Gentle Ledger</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;500;700&family=Quicksand:wght@400;600&display=swap');
+        
+        :root {
+            --primary-color: #6b7280;
+            --bg-gradient: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        }
+
+        body { 
+            font-family: 'Quicksand', 'Noto Sans SC', sans-serif; 
+            background: var(--bg-gradient);
+            transition: all 0.8s ease;
+            min-height: 100vh;
+        }
+
+        .glass-card { 
+            backdrop-filter: blur(16px); 
+            background: rgba(255, 255, 255, 0.7); 
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            transition: transform 0.2s;
+        }
+
+        .btn-primary:active { transform: scale(0.95); }
+
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.5s; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        
+        /* 隐藏滚动条但保留功能 */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="p-4 pb-20">
+    <div id="app" class="max-w-md mx-auto">
+        <!-- 语言切换与顶部状态 -->
+        <div class="flex justify-between items-center mb-6">
+            <button @click="toggleLang" class="glass-card px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-gray-600">
+                {{ lang === 'zh' ? 'English' : '中文' }}
+            </button>
+            <div class="text-right">
+                <p class="text-[10px] uppercase tracking-tighter text-gray-400 font-bold">{{ t('dailyBudget') }}</p>
+                <p class="text-lg font-bold" :style="{color: themeColor}">¥{{ dailyLimit }}</p>
+            </div>
+        </div>
+
+        <!-- 头部日期 -->
+        <header class="mb-8 pl-2">
+            <h1 class="text-3xl font-bold text-gray-800 tracking-tight">{{ t('greeting') }}</h1>
+            <p class="text-gray-500 font-medium">{{ displayDate }}</p>
+        </header>
+
+        <!-- 动态植物卡片 -->
+        <section class="glass-card rounded-[2rem] overflow-hidden mb-6 transition-all duration-1000">
+            <div class="h-32 w-full relative">
+                <img :src="luckyPlant.img" class="w-full h-full object-cover opacity-80" />
+                <div class="absolute inset-0 bg-gradient-to-t from-white/90 to-transparent"></div>
+            </div>
+            <div class="p-6 -mt-10 relative">
+                <div class="flex justify-between items-end">
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-widest opacity-50" :style="{color: themeColor}">{{ t('luckyPlant') }}</h3>
+                        <p class="text-2xl font-bold text-gray-800">{{ lang === 'zh' ? luckyPlant.name : luckyPlant.nameEn }}</p>
+                    </div>
+                    <span class="text-4xl">{{ luckyPlant.icon }}</span>
+                </div>
+                <p class="mt-2 text-sm italic opacity-70" :style="{color: themeColor}">"{{ lang === 'zh' ? luckyPlant.word : luckyPlant.wordEn }}"</p>
+            </div>
+        </section>
+
+        <!-- 统计面板 -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="glass-card rounded-3xl p-5">
+                <p class="text-[10px] uppercase font-bold text-gray-400 mb-1">{{ t('spentToday') }}</p>
+                <p class="text-2xl font-bold text-gray-800">¥{{ dailyTotal }}</p>
+            </div>
+            <div class="glass-card rounded-3xl p-5" :class="{'bg-red-50/50': budgetRemaining < 0}">
+                <p class="text-[10px] uppercase font-bold text-gray-400 mb-1">{{ t('remaining') }}</p>
+                <p class="text-2xl font-bold" :style="{color: budgetRemaining >= 0 ? themeColor : '#ef4444'}">¥{{ budgetRemaining }}</p>
+            </div>
+        </div>
+
+        <!-- AI 建议 -->
+        <div class="glass-card rounded-2xl p-4 mb-8 border-l-4" :style="{'border-left-color': themeColor}">
+            <p class="text-xs text-gray-600 leading-relaxed font-medium">
+                <i class="fas fa-magic mr-1" :style="{color: themeColor}"></i> {{ aiAnalysis }}
+            </p>
+        </div>
+
+        <!-- 记账输入区 -->
+        <section class="glass-card rounded-[2rem] p-6 mb-8">
+            <div class="flex gap-2 mb-4">
+                <input type="date" v-model="newItem.date" class="flex-1 bg-white/50 p-3 rounded-xl border-none text-xs outline-none">
+                <select v-model="newItem.category" class="flex-1 bg-white/50 p-3 rounded-xl border-none text-xs outline-none">
+                    <optgroup v-for="(subs, main) in categories" :label="lang === 'zh' ? main : mainEn[main]">
+                        <option v-for="sub in subs" :value="sub">{{ sub }}</option>
+                    </optgroup>
+                </select>
+            </div>
+            
+            <div class="flex gap-2 mb-4">
+                <input type="number" v-model="newItem.amount" :placeholder="t('amount')" class="w-1/3 bg-white/50 p-3 rounded-xl border-none text-sm outline-none">
+                <input type="text" v-model="newItem.note" :placeholder="t('feeling')" class="flex-1 bg-white/50 p-3 rounded-xl border-none text-sm outline-none">
+            </div>
+
+            <div class="flex gap-3">
+                <button @click="triggerPhoto" class="bg-white/50 px-5 rounded-2xl hover:bg-white transition shadow-sm text-gray-400">
+                    <i class="fas fa-camera"></i>
+                </button>
+                <button @click="addRecord" class="flex-1 text-white font-bold py-4 rounded-2xl shadow-lg transition-all btn-primary" :style="{'background-color': themeColor}">
+                    {{ t('keepRecord') }}
+                </button>
+            </div>
+        </section>
+
+        <!-- 账单明细列表 -->
+        <div class="space-y-4">
+            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest pl-2 mb-2">{{ t('records') }}</h2>
+            <div v-if="records.length === 0" class="text-center py-10 opacity-30">
+                <i class="fas fa-feather text-3xl mb-2"></i>
+                <p class="text-xs">Quiet day...</p>
+            </div>
+            <transition-group name="fade">
+                <div v-for="(item, index) in records" :key="item.id" class="glass-card rounded-2xl p-5 relative overflow-hidden">
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/80" :style="{color: themeColor}">{{ item.category }}</span>
+                            <p class="text-sm font-bold text-gray-700 mt-2">{{ item.note || t('noNote') }}</p>
+                            <p class="text-[10px] text-gray-400 mt-1">{{ item.date }}</p>
+                        </div>
+                        <div class="text-right font-bold text-lg text-gray-800">
+                            -¥{{ item.amount }}
+                            <button @click="deleteItem(index)" class="block text-[10px] text-red-300 mt-2 hover:text-red-500">DELETE</button>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-100/50 text-[11px] italic opacity-60 leading-relaxed">
+                        {{ item.quote }}
+                    </div>
+                </div>
+            </transition-group>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, watch } = Vue;
+
+        createApp({
+            setup() {
+                const lang = ref(localStorage.getItem('lang') || 'zh');
+                const dailyLimit = 50;
+                
+                // 1. 数据保存逻辑
+                const records = ref(JSON.parse(localStorage.getItem('my_data_v3') || '[]'));
+                watch(records, (newVal) => {
+                    localStorage.setItem('my_data_v3', JSON.stringify(newVal));
+                }, { deep: true });
+
+                // 2. 翻译字典
+                const i18n = {
+                    zh: {
+                        greeting: "你好，亲爱的", dailyBudget: "每日预算额", luckyPlant: "今日幸运植物",
+                        spentToday: "今日已花", remaining: "预算余额", amount: "金额",
+                        feeling: "此时的心情...", keepRecord: "记录这一笔", records: "历史账单记录",
+                        dailyTotal: "当日合计", noNote: "此时无言",
+                        ai1: "今天还没有记录，生活需要一点仪式感哦。",
+                        ai2: "已经超出预算了，明天对自己“吝啬”一点点吧？",
+                        ai3: "掌控得很好，你是个懂得平衡生活的人。"
+                    },
+                    en: {
+                        greeting: "Hello, Dear", dailyBudget: "DAILY BUDGET", luckyPlant: "LUCKY PLANT",
+                        spentToday: "SPENT TODAY", remaining: "BALANCE", amount: "Amount",
+                        feeling: "How do you feel?", keepRecord: "Keep Record", records: "HISTORY RECORDS",
+                        dailyTotal: "Total", noNote: "A quiet moment",
+                        ai1: "The page is blank. Why not record your first expense?",
+                        ai2: "A little over budget. Let's be more mindful tomorrow.",
+                        ai3: "You're doing great! Perfect control over your life."
+                    }
+                };
+
+                const categories = {
+                    "餐饮": ["聚餐", "做饭", "零食奶茶"],
+                    "购物": ["衣物", "生活用品"],
+                    "出行": ["公交地铁", "打车"],
+                    "住房": ["房租", "水电燃气"]
+                };
+                const mainEn = { "餐饮": "Dining", "购物": "Shopping", "出行": "Travel", "住房": "Housing" };
+
+                // 3. 植物与主题系统
+                const themes = [
+                    { name: "尤加利", nameEn: "Eucalyptus", icon: "🌿", color: "#6b8e23", bg: "linear-gradient(135deg, #f0f4f1 0%, #dce5df 100%)", word: "优雅的自律，是最高级的自由。", wordEn: "Self-discipline is a form of freedom.", img: "https://images.unsplash.com/photo-1584552579411-99af631f16af?auto=format&fit=crop&q=80&w=400" },
+                    { name: "向日葵", nameEn: "Sunflower", icon: "🌻", color: "#b8860b", bg: "linear-gradient(135deg, #fdfcf0 0%, #f5f0d5 100%)", word: "心若向阳，无谓悲伤。", wordEn: "Keep your face to the sunshine.", img: "https://images.unsplash.com/photo-1470509037663-253afd7f0f51?auto=format&fit=crop&q=80&w=400" },
+                    { name: "薰衣草", nameEn: "Lavender", icon: "🪻", color: "#6a5acd", bg: "linear-gradient(135deg, #f3f0fd 0%, #e5def5 100%)", word: "在喧嚣中，寻找内心的安宁。", wordEn: "Find peace in the whispers of life.", img: "https://images.unsplash.com/photo-1565011523534-747a8601f10a?auto=format&fit=crop&q=80&w=400" },
+                    { name: "白兰花", nameEn: "White Lily", icon: "🕊️", color: "#708090", bg: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)", word: "简单生活，纯粹喜悦。", wordEn: "Simple life, pure joy.", img: "https://images.unsplash.com/photo-1508179106132-38a0380a8f12?auto=format&fit=crop&q=80&w=400" }
+                ];
+                const luckyPlant = ref(themes[Math.floor(Math.random() * themes.length)]);
+                const themeColor = computed(() => luckyPlant.value.color);
+
+                // 4. 温情英语句子
+                const quotes = [
+                    "Everything you do is a gift to your future self.",
+                    "Small expenses are like drops of water; they add up.",
+                    "Spend on experiences, save on things.",
+                    "Happiness is not about having more, but needing less.",
+                    "A budget tells your money where to go instead of wondering where it went."
+                ];
+
+                const newItem = ref({
+                    date: new Date().toISOString().split('T')[0],
+                    category: '聚餐',
+                    amount: null,
+                    note: ''
+                });
+
+                const displayDate = computed(() => {
+                    const options = { month: 'long', day: 'numeric', year: 'numeric' };
+                    return new Date().toLocaleDateString(lang.value === 'zh' ? 'zh-CN' : 'en-US', options);
+                });
+
+                const dailyTotal = computed(() => records.value.reduce((s, i) => s + Number(i.amount), 0));
+                const budgetRemaining = computed(() => (dailyLimit - dailyTotal.value).toFixed(2));
+
+                const aiAnalysis = computed(() => {
+                    if (records.value.length === 0) return t('ai1');
+                    if (budgetRemaining.value < 0) return t('ai2');
+                    return t('ai3');
+                });
+
+                const t = (key) => i18n[lang.value][key];
+
+                const toggleLang = () => {
+                    lang.value = lang.value === 'zh' ? 'en' : 'zh';
+                    localStorage.setItem('lang', lang.value);
+                };
+
+                const addRecord = () => {
+                    if (!newItem.value.amount) return;
+                    records.value.unshift({
+                        id: Date.now(),
+                        ...newItem.value,
+                        quote: quotes[Math.floor(Math.random() * quotes.length)]
+                    });
+                    newItem.value = { date: new Date().toISOString().split('T')[0], category: '聚餐', amount: null, note: '' };
+                };
+
+                const deleteItem = (idx) => {
+                    if(confirm("Confirm delete?")) records.value.splice(idx, 1);
+                };
+
+                const triggerPhoto = () => {
+                    alert("AI OCR: Coffee ¥28 detected.");
+                    newItem.value.amount = 28;
+                    newItem.value.category = '零食奶茶';
+                    newItem.value.note = 'Starbucks';
+                };
+
+                onMounted(() => {
+                    document.documentElement.style.setProperty('--primary-color', themeColor.value);
+                    document.body.style.background = luckyPlant.value.bg;
+                });
+
+                return {
+                    lang, dailyLimit, categories, mainEn, records, newItem,
+                    luckyPlant, themeColor, displayDate, dailyTotal, budgetRemaining,
+                    aiAnalysis, t, toggleLang, addRecord, deleteItem, triggerPhoto
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
