@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="森之息">
+<title>森之息 · Forest Breath</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+:root{
+  --sage:#5a7a5a;--sage-light:#8aaa7a;--sage-pale:#e8f0e2;--sage-mist:#f2f7ee;
+  --earth:#7a6040;--earth-light:#c4a882;--earth-pale:#f5ede0;
+  --moss:#3d5c3d;--dew:#d4e8c8;--bark:#4a3728;
+  --cream:#faf8f2;--parchment:#f0ebe0;
+  --text-main:#2c3620;--text-soft:#6b7c5a;--text-muted:#9aab88;
+}
+
+html,body{height:100%;background:var(--cream);color:var(--text-main);font-family:'Noto Sans SC',sans-serif;overflow-x:hidden}
+
+.app{max-width:600px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--cream)}
+
+/* Header */
+.header{
+  padding:1.5rem 1.25rem 1rem;
+  border-bottom:1px solid #d8e8cc;
+  background:var(--cream);
+  position:relative;overflow:hidden;
+  flex-shrink:0;
+}
+.header-deco{position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:radial-gradient(circle,#d4e8c840 0%,transparent 70%);border-radius:50%}
+.logo{font-family:'Noto Serif SC',serif;font-size:20px;font-weight:400;color:var(--moss);letter-spacing:4px;display:flex;align-items:center;gap:8px}
+.logo-leaf{color:var(--sage-light);font-size:16px}
+.logo-sub{font-size:10px;letter-spacing:3px;color:var(--text-muted);font-family:'Lora',serif;font-style:italic;margin-top:2px}
+.header-stats{display:flex;gap:1.25rem;margin-top:0.875rem}
+.stat{font-size:12px;color:var(--text-soft)}
+.stat span{font-weight:500;color:var(--sage);font-size:13px}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid #d8e8cc;background:white;position:sticky;top:0;z-index:10;flex-shrink:0}
+.tab{flex:1;padding:11px 8px;font-size:12px;color:var(--text-muted);cursor:pointer;border:none;background:none;transition:all 0.2s;font-family:'Noto Sans SC',sans-serif;border-bottom:2px solid transparent;letter-spacing:0.5px}
+.tab.active{color:var(--sage);border-bottom-color:var(--sage);font-weight:500}
+
+/* Content */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:80px}
+.view{padding:1.25rem;display:none}
+.view.active{display:block}
+
+/* Season label */
+.season-label{font-size:11px;letter-spacing:3px;color:var(--text-muted);font-family:'Lora',serif;font-style:italic;margin-bottom:0.875rem;display:flex;align-items:center;gap:8px}
+.season-label::after{content:'';flex:1;height:1px;background:#d8e8cc}
+
+/* Plant card */
+.plant-card{background:white;border:1px solid #e0ecd4;border-radius:14px;padding:1.1rem;margin-bottom:0.875rem;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.plant-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--sage-light);border-radius:14px 0 0 14px}
+.plant-card:active{background:#f8fbf5}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start}
+.plant-name-cn{font-family:'Noto Serif SC',serif;font-size:16px;font-weight:500;color:var(--moss)}
+.plant-name-en{font-size:11px;color:var(--text-muted);font-family:'Lora',serif;font-style:italic;margin-top:1px}
+.plant-family{font-size:10px;padding:3px 9px;background:var(--sage-pale);color:var(--sage);border-radius:20px;letter-spacing:1px;white-space:nowrap;flex-shrink:0;margin-left:8px}
+.plant-desc{font-size:13px;color:var(--text-soft);line-height:1.7;margin-top:0.625rem;font-family:'Lora',serif;font-style:italic}
+.card-meta{display:flex;gap:0.875rem;margin-top:0.625rem;padding-top:0.625rem;border-top:1px dashed #e0ecd4;flex-wrap:wrap}
+.meta-item{font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:3px}
+.meta-dot{width:3px;height:3px;border-radius:50%;background:var(--sage-light);flex-shrink:0}
+
+/* FAB */
+.fab{position:fixed;bottom:1.5rem;right:1.5rem;width:54px;height:54px;border-radius:50%;background:var(--sage);color:white;border:none;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px #5a7a5a50;transition:all 0.2s;z-index:50;font-family:sans-serif;line-height:1}
+.fab:active{background:var(--moss);transform:scale(0.95)}
+
+/* Modal - add plant */
+.modal-overlay{display:none;position:fixed;inset:0;background:#00000040;z-index:100;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--cream);border-radius:20px 20px 0 0;padding:0;width:100%;max-width:600px;max-height:92vh;display:flex;flex-direction:column}
+.modal-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1.25rem;flex:1}
+.modal-handle{width:32px;height:4px;background:#d8e8cc;border-radius:2px;margin:12px auto 1.25rem}
+.modal-title{font-family:'Noto Serif SC',serif;font-size:17px;color:var(--moss);margin-bottom:1.1rem;letter-spacing:2px}
+.field-group{margin-bottom:0.875rem}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.field-label{font-size:10px;color:var(--text-muted);letter-spacing:2px;margin-bottom:5px;display:block}
+input[type=text],input[type=date],select,textarea{width:100%;padding:10px 12px;border:1px solid #d8e8cc;border-radius:10px;font-size:14px;font-family:'Noto Sans SC',sans-serif;color:var(--text-main);background:white;outline:none;-webkit-appearance:none;appearance:none}
+input:focus,textarea:focus{border-color:var(--sage-light)}
+textarea{resize:none;line-height:1.6;font-style:italic;font-family:'Lora',serif}
+.modal-footer{padding:1rem 1.25rem;border-top:1px solid #e8f0e2;background:var(--cream);flex-shrink:0}
+.submit-btn{width:100%;padding:13px;background:var(--sage);color:white;border:none;border-radius:12px;font-size:14px;cursor:pointer;font-family:'Noto Sans SC',sans-serif;letter-spacing:2px;transition:background 0.2s}
+.submit-btn:active{background:var(--moss)}
+.cancel-btn{width:100%;padding:10px;background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;margin-top:4px;font-family:'Noto Sans SC',sans-serif}
+
+/* Detail modal */
+.detail-overlay{display:none;position:fixed;inset:0;background:#00000040;z-index:200;align-items:flex-end;justify-content:center}
+.detail-overlay.open{display:flex}
+.detail-modal{background:var(--cream);border-radius:20px 20px 0 0;padding:0;width:100%;max-width:600px;max-height:88vh;display:flex;flex-direction:column}
+.detail-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1.5rem;flex:1}
+.detail-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);padding:4px;z-index:1}
+.detail-header-wrap{position:relative;padding-right:2rem}
+.detail-name-cn{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:500;color:var(--moss)}
+.detail-name-en{font-family:'Lora',serif;font-style:italic;font-size:13px;color:var(--text-muted);margin-top:2px}
+.detail-tag{display:inline-block;font-size:10px;padding:3px 10px;background:var(--sage-pale);color:var(--sage);border-radius:20px;margin-top:8px;letter-spacing:1px}
+.detail-feeling{font-family:'Lora',serif;font-style:italic;color:var(--text-soft);line-height:1.8;font-size:14px;padding:1rem;background:white;border-left:3px solid var(--sage-light);border-radius:0 10px 10px 0;margin:1rem 0}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.625rem;margin-top:0.875rem}
+.detail-item{background:white;border-radius:10px;padding:0.75rem}
+.detail-item-label{font-size:10px;color:var(--text-muted);letter-spacing:2px;margin-bottom:3px}
+.detail-item-val{font-size:13px;color:var(--text-main)}
+.detail-footer{padding:1rem 1.5rem;border-top:1px solid #e8f0e2;background:var(--cream);flex-shrink:0}
+.detail-actions{display:flex;gap:8px}
+.action-btn{flex:1;padding:11px;border:none;border-radius:10px;font-size:12px;cursor:pointer;font-family:'Noto Sans SC',sans-serif;letter-spacing:1px;transition:all 0.2s}
+.action-btn.primary{background:var(--sage-pale);color:var(--sage)}
+.action-btn.danger{background:#fff0f0;color:#c0504a}
+.action-btn:active{opacity:0.8}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;margin-bottom:1.25rem}
+.stat-card{background:white;border:1px solid #e0ecd4;border-radius:12px;padding:1.1rem;text-align:center}
+.stat-num{font-family:'Noto Serif SC',serif;font-size:26px;color:var(--sage);font-weight:500}
+.stat-desc{font-size:11px;color:var(--text-muted);margin-top:4px;letter-spacing:1px}
+.family-list{background:white;border-radius:12px;border:1px solid #e0ecd4;overflow:hidden}
+.family-item{display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1.1rem;border-bottom:1px solid #f0f7e8;font-size:13px}
+.family-item:last-child{border-bottom:none}
+.family-count{background:var(--sage-pale);color:var(--sage);font-size:11px;padding:2px 10px;border-radius:20px}
+
+/* Map view */
+.map-placeholder{background:var(--sage-pale);border-radius:14px;padding:2rem;text-align:center;margin-bottom:1rem}
+.map-icon{font-size:40px;margin-bottom:0.75rem}
+.map-text{font-size:13px;color:var(--text-soft);line-height:1.7}
+
+/* Timeline */
+.timeline-item{display:flex;gap:10px;margin-bottom:0.75rem;align-items:flex-start}
+.tl-date{font-size:11px;color:var(--text-muted);min-width:76px;padding-top:1px}
+.tl-line{width:1px;background:#d8e8cc;min-height:28px;margin-top:5px;flex-shrink:0}
+.tl-name{font-size:13px;color:var(--text-main)}
+.tl-loc{font-size:11px;color:var(--text-muted)}
+
+/* Empty state */
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--text-muted);font-size:14px;line-height:2}
+.leaf-deco{font-size:36px;margin-bottom:0.5rem}
+
+/* Search bar */
+.search-wrap{position:relative;margin-bottom:1rem}
+.search-input{width:100%;padding:10px 12px 10px 36px;border:1px solid #d8e8cc;border-radius:12px;font-size:13px;background:white;color:var(--text-main);outline:none;font-family:'Noto Sans SC',sans-serif}
+.search-input:focus{border-color:var(--sage-light)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none}
+
+@media(prefers-color-scheme:dark){
+  :root{--cream:#1a1f17;--text-main:#d4e0c8;--text-soft:#8aaa7a;--text-muted:#5a7a5a}
+  .plant-card,.modal,.detail-modal,.stat-card,.family-list,.detail-item{background:#232b1e}
+  input,textarea,.search-input{background:#232b1e;color:#d4e0c8;border-color:#3a4f3a}
+  .tabs,.modal-footer,.detail-footer{background:#1a1f17}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-deco"></div>
+    <div class="logo"><span class="logo-leaf">✦</span>森之息</div>
+    <div class="logo-sub">Forest Breath · A Plant Journal</div>
+    <div class="header-stats">
+      <div class="stat"><span id="total-count">0</span> 种植物</div>
+      <div class="stat"><span id="family-count">0</span> 个科目</div>
+      <div class="stat"><span id="location-count">0</span> 个地点</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('journal')">记录 Journal</button>
+    <button class="tab" onclick="switchTab('map')">地点 Places</button>
+    <button class="tab" onclick="switchTab('stats')">统计 Archive</button>
+  </div>
+
+  <div class="content">
+    <div id="view-journal" class="view active">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input class="search-input" type="text" id="search-input" placeholder="搜索植物名称、地点…" oninput="renderList()">
+      </div>
+      <div id="plant-list"></div>
+      <div id="empty-journal" class="empty-state" style="display:none">
+        <div class="leaf-deco">🌿</div>
+        还没有记录任何植物<br>点击右下角 + 开始第一篇观察
+        <br><br>
+        <span style="font-family:'Lora',serif;font-style:italic;color:var(--text-muted);font-size:12px">No plants recorded yet</span>
+      </div>
+    </div>
+
+    <div id="view-map" class="view">
+      <div class="map-placeholder">
+        <div class="map-icon">🗺</div>
+        <div class="map-text">你发现植物的所有地点<br><span style="font-family:'Lora',serif;font-style:italic;font-size:12px;color:var(--text-muted)">All your discovery locations</span></div>
+      </div>
+      <div id="location-list"></div>
+    </div>
+
+    <div id="view-stats" class="view">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-desc">记录总数 Total</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-families">0</div><div class="stat-desc">科目数 Families</div></div>
+      </div>
+      <div class="season-label">科目分布 By Family</div>
+      <div class="family-list" id="family-breakdown"><div class="family-item" style="justify-content:center;color:var(--text-muted);font-size:13px">暂无数据</div></div>
+      <div class="season-label" style="margin-top:1.25rem">时间线 Timeline</div>
+      <div id="timeline" style="padding-bottom:1rem"></div>
+    </div>
+  </div>
+</div>
+
+<button class="fab" onclick="openModal()" aria-label="添加植物">+</button>
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="add-modal" onclick="handleOverlayClick(event,'add-modal')">
+  <div class="modal">
+    <div class="modal-scroll">
+      <div class="modal-handle"></div>
+      <div class="modal-title">记录一株植物</div>
+      <div class="field-group">
+        <div class="field-row">
+          <div><label class="field-label">中文名 Name</label><input type="text" id="f-name-cn" placeholder="如：木槿"></div>
+          <div><label class="field-label">英文名 English</label><input type="text" id="f-name-en" placeholder="e.g. Rose of Sharon"></div>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <div><label class="field-label">科目 Family</label><input type="text" id="f-family" placeholder="如：锦葵科"></div>
+          <div><label class="field-label">发现日期 Date</label><input type="date" id="f-date"></div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">发现地点 Location</label>
+        <input type="text" id="f-location" placeholder="如：公园小径旁">
+      </div>
+      <div class="field-group">
+        <label class="field-label">我的感受 My Feeling</label>
+        <textarea id="f-feeling" rows="4" placeholder="用你自己的语言描述这株植物，它给你的感受…"></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label">植物信息 Notes</label>
+        <textarea id="f-notes" rows="2" placeholder="花期、颜色、高度等客观信息…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="submit-btn" onclick="addPlant()">记录入册 · Record</button>
+      <button class="cancel-btn" onclick="closeModal()">取消 Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="detail-overlay" id="detail-modal" onclick="handleOverlayClick(event,'detail-modal')">
+  <div class="detail-modal">
+    <div class="detail-scroll">
+      <div class="detail-header-wrap">
+        <button class="detail-close" onclick="closeDetail()">✕</button>
+        <div class="detail-name-cn" id="d-name-cn"></div>
+        <div class="detail-name-en" id="d-name-en"></div>
+        <span class="detail-tag" id="d-family"></span>
+      </div>
+      <div class="detail-feeling" id="d-feeling"></div>
+      <div id="d-notes-wrap"></div>
+      <div class="detail-grid">
+        <div class="detail-item"><div class="detail-item-label">发现日期 DATE</div><div class="detail-item-val" id="d-date"></div></div>
+        <div class="detail-item"><div class="detail-item-label">发现地点 LOCATION</div><div class="detail-item-val" id="d-location"></div></div>
+      </div>
+    </div>
+    <div class="detail-footer">
+      <div class="detail-actions">
+        <button class="action-btn primary" onclick="editCurrent()">编辑 Edit</button>
+        <button class="action-btn danger" onclick="deleteCurrent()">删除 Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var plants=[];
+var currentIdx=-1;
+var STORAGE_KEY='forest_breath_v1';
+
+var SEASONS={'01':'冬 Winter','02':'冬 Winter','03':'春 Spring','04':'春 Spring','05':'春 Spring','06':'夏 Summer','07':'夏 Summer','08':'夏 Summer','09':'秋 Autumn','10':'秋 Autumn','11':'秋 Autumn','12':'冬 Winter'};
+
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(plants))}catch(e){}}
+function load(){try{var d=localStorage.getItem(STORAGE_KEY);if(d)plants=JSON.parse(d)}catch(e){}}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+function renderList(){
+  var q=(document.getElementById('search-input').value||'').trim().toLowerCase();
+  var list=document.getElementById('plant-list');
+  var empty=document.getElementById('empty-journal');
+  var filtered=q?plants.filter(function(p){return(p.nameCn+p.nameEn+p.location+p.family).toLowerCase().indexOf(q)>=0}):plants;
+  if(!filtered.length){list.innerHTML='';empty.style.display='block';return}
+  empty.style.display='none';
+  var sorted=[...filtered].map(function(p,i){return{p:p,i:plants.indexOf(p)}}).sort(function(a,b){return b.p.date.localeCompare(a.p.date)});
+  var html='';var lastSeason='';
+  sorted.forEach(function(item){
+    var p=item.p,i=item.i;
+    var m=p.date?p.date.slice(5,7):'04';
+    var s=SEASONS[m]||'春 Spring';
+    if(s!==lastSeason){html+='<div class="season-label">'+s+'</div>';lastSeason=s}
+    html+='<div class="plant-card" onclick="openDetail('+i+')">';
+    html+='<div class="card-top"><div><div class="plant-name-cn">'+esc(p.nameCn)+'</div><div class="plant-name-en">'+esc(p.nameEn)+'</div></div><span class="plant-family">'+esc(p.family)+'</span></div>';
+    if(p.feeling)html+='<div class="plant-desc">'+esc(p.feeling.slice(0,55))+(p.feeling.length>55?'…':'')+'</div>';
+    html+='<div class="card-meta"><span class="meta-item"><span class="meta-dot"></span>'+esc(p.date)+'</span><span class="meta-item"><span class="meta-dot"></span>'+esc(p.location)+'</span></div>';
+    html+='</div>';
+  });
+  list.innerHTML=html;
+}
+
+function updateStats(){
+  var total=plants.length;
+  var families=[...new Set(plants.map(function(p){return p.family}))];
+  var locations=[...new Set(plants.map(function(p){return p.location}))];
+  document.getElementById('total-count').textContent=total;
+  document.getElementById('family-count').textContent=families.length;
+  document.getElementById('location-count').textContent=locations.length;
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-families').textContent=families.length;
+  var fCount={};
+  plants.forEach(function(p){fCount[p.family]=(fCount[p.family]||0)+1});
+  var fb=document.getElementById('family-breakdown');
+  if(!total){fb.innerHTML='<div class="family-item" style="justify-content:center;color:var(--text-muted);font-size:13px">暂无数据</div>';}
+  else{fb.innerHTML=Object.entries(fCount).sort(function(a,b){return b[1]-a[1]}).map(function(e){return'<div class="family-item"><span>'+esc(e[0])+'</span><span class="family-count">'+e[1]+'</span></div>'}).join('');}
+  var sorted=[...plants].sort(function(a,b){return b.date.localeCompare(a.date)});
+  document.getElementById('timeline').innerHTML=sorted.map(function(p){return'<div class="timeline-item"><div class="tl-date">'+esc(p.date)+'</div><div class="tl-line"></div><div><div class="tl-name">'+esc(p.nameCn)+'</div><div class="tl-loc">'+esc(p.location)+'</div></div></div>'}).join('');
+  var ll=document.getElementById('location-list');
+  ll.innerHTML=locations.map(function(l){var ps=plants.filter(function(p){return p.location===l});return'<div class="plant-card" style="cursor:default"><div class="plant-name-cn" style="font-size:15px">'+esc(l)+'</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">'+ps.map(function(p){return esc(p.nameCn)}).join('、')+'</div></div>'}).join('');
+}
+
+function render(){renderList();updateStats()}
+
+function switchTab(t){
+  ['journal','map','stats'].forEach(function(v){document.getElementById('view-'+v).classList.toggle('active',v===t)});
+  document.querySelectorAll('.tab').forEach(function(el,i){el.classList.toggle('active',['journal','map','stats'][i]===t)});
+}
+
+function openModal(){
+  document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('add-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('f-name-cn').focus()},300);
+}
+function closeModal(){document.getElementById('add-modal').classList.remove('open')}
+
+function addPlant(){
+  var cn=document.getElementById('f-name-cn').value.trim();
+  if(!cn){alert('请输入植物名称');return}
+  var p={nameCn:cn,nameEn:document.getElementById('f-name-en').value.trim(),family:document.getElementById('f-family').value.trim()||'未知科',date:document.getElementById('f-date').value||new Date().toISOString().slice(0,10),location:document.getElementById('f-location').value.trim()||'未知地点',feeling:document.getElementById('f-feeling').value.trim(),notes:document.getElementById('f-notes').value.trim()};
+  if(currentIdx>=0&&currentIdx<plants.length){plants[currentIdx]=p;}
+  else{plants.unshift(p);}
+  currentIdx=-1;save();render();closeModal();
+  ['f-name-cn','f-name-en','f-family','f-location','f-feeling','f-notes'].forEach(function(id){document.getElementById(id).value=''});
+}
+
+function openDetail(i){
+  currentIdx=i;var p=plants[i];
+  document.getElementById('d-name-cn').textContent=p.nameCn;
+  document.getElementById('d-name-en').textContent=p.nameEn||'';
+  document.getElementById('d-family').textContent=p.family;
+  document.getElementById('d-feeling').textContent=p.feeling||'（暂无感受记录）';
+  document.getElementById('d-date').textContent=p.date;
+  document.getElementById('d-location').textContent=p.location;
+  var nw=document.getElementById('d-notes-wrap');
+  nw.innerHTML=p.notes?'<div style="font-size:13px;color:var(--text-muted);line-height:1.7;padding:0.25rem 0 0.5rem">'+esc(p.notes)+'</div>':'';
+  document.getElementById('detail-modal').classList.add('open');
+}
+function closeDetail(){document.getElementById('detail-modal').classList.remove('open');currentIdx=-1}
+
+function editCurrent(){
+  if(currentIdx<0)return;
+  var p=plants[currentIdx];
+  closeDetail();
+  setTimeout(function(){
+    document.getElementById('f-name-cn').value=p.nameCn;
+    document.getElementById('f-name-en').value=p.nameEn||'';
+    document.getElementById('f-family').value=p.family;
+    document.getElementById('f-date').value=p.date;
+    document.getElementById('f-location').value=p.location;
+    document.getElementById('f-feeling').value=p.feeling||'';
+    document.getElementById('f-notes').value=p.notes||'';
+    document.getElementById('add-modal').classList.add('open');
+  },200);
+}
+
+function deleteCurrent(){
+  if(currentIdx<0)return;
+  var p=plants[currentIdx];
+  if(confirm('确认删除「'+p.nameCn+'」？')){plants.splice(currentIdx,1);save();render();closeDetail();}
+}
+
+function handleOverlayClick(e,id){if(e.target.id===id){if(id==='add-modal')closeModal();else closeDetail();}}
+
+load();render();
+</script>
+</body>
+</html>
